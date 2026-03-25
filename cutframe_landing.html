@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CutFrame — Video Editing, Elevated</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f2eb;
+    --cream: #f0ead8;
+    --orange: #ff4d00;
+    --orange-dim: #cc3d00;
+    --grey: #2a2a2a;
+    --mid: #5a5a5a;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--orange);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, width 0.2s ease, height 0.2s ease, background 0.2s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor.big {
+    width: 48px; height: 48px;
+    background: rgba(255, 77, 0, 0.3);
+  }
+
+  /* Nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 48px;
+    mix-blend-mode: normal;
+  }
+
+  nav::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(10,10,10,0.9) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--white);
+    z-index: 1;
+  }
+
+  .logo span { color: var(--orange); }
+
+  nav .nav-cta {
+    z-index: 1;
+    background: transparent;
+    border: 1px solid rgba(245,242,235,0.3);
+    color: var(--white);
+    padding: 10px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  nav .nav-cta:hover {
+    border-color: var(--orange);
+    background: var(--orange);
+  }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 70% 40%, rgba(255,77,0,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 20% 80%, rgba(255,77,0,0.06) 0%, transparent 60%);
+  }
+
+  /* Film strip decorative lines */
+  .filmstrip {
+    position: absolute;
+    top: 0; right: 80px;
+    width: 2px;
+    height: 100%;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--grey) 0px,
+      var(--grey) 20px,
+      transparent 20px,
+      transparent 36px
+    );
+    opacity: 0.4;
+  }
+  .filmstrip:nth-child(2) { right: 100px; opacity: 0.2; }
+
+  /* Counter */
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 12vw, 180px);
+    line-height: 0.88;
+    letter-spacing: -1px;
+    color: var(--white);
+    opacity: 0;
+    animation: fadeUp 0.9s ease 0.4s forwards;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--orange);
+    display: block;
+  }
+
+  .hero-sub {
+    max-width: 480px;
+    margin-top: 32px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(245,242,235,0.6);
+    opacity: 0;
+    animation: fadeUp 0.9s ease 0.6s forwards;
+  }
+
+  .hero-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin-top: 64px;
+    opacity: 0;
+    animation: fadeUp 0.9s ease 0.8s forwards;
+  }
+
+  .stats {
+    display: flex;
+    gap: 48px;
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .stat-num span { color: var(--orange); }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-top: 4px;
+  }
+
+  /* Scroll indicator */
+  .scroll-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .scroll-line {
+    width: 1px; height: 48px;
+    background: linear-gradient(to bottom, var(--orange), transparent);
+    animation: scrollPulse 2s ease infinite;
+  }
+
+  /* Services */
+  .services {
+    padding: 120px 48px;
+    border-top: 1px solid var(--grey);
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 64px;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+
+  .service-item {
+    padding: 40px;
+    border-left: 1px solid var(--grey);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .service-item:hover { background: rgba(255,77,0,0.04); }
+
+  .service-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px; width: 0;
+    background: var(--orange);
+    transition: width 0.4s ease;
+  }
+
+  .service-item:hover::after { width: 100%; }
+
+  .service-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    color: var(--grey);
+    line-height: 1;
+    margin-bottom: 24px;
+  }
+
+  .service-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+
+  .service-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(245,242,235,0.5);
+  }
+
+  /* Reel marquee */
+  .reel {
+    padding: 48px 0;
+    border-top: 1px solid var(--grey);
+    border-bottom: 1px solid var(--grey);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .reel-track {
+    display: flex;
+    gap: 0;
+    animation: marquee 18s linear infinite;
+    width: max-content;
+  }
+
+  .reel-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    letter-spacing: 4px;
+    padding: 0 48px;
+    color: var(--grey);
+    white-space: nowrap;
+    transition: color 0.3s;
+  }
+
+  .reel-item.accent { color: var(--orange); }
+
+  /* Process */
+  .process {
+    padding: 120px 48px;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 80px;
+    align-items: start;
+    border-top: 1px solid var(--grey);
+  }
+
+  .process-left h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 5vw, 72px);
+    line-height: 0.95;
+    color: var(--white);
+  }
+
+  .process-left h2 em {
+    display: block;
+    font-style: normal;
+    color: var(--orange);
+  }
+
+  .process-steps {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 24px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--grey);
+    align-items: start;
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .step-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .step-body {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(245,242,235,0.5);
+  }
+
+  /* Waitlist */
+  .waitlist {
+    padding: 120px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    background: var(--grey);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .waitlist::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 80% at 100% 50%, rgba(255,77,0,0.15) 0%, transparent 60%);
+  }
+
+  .waitlist-left {
+    position: relative;
+    z-index: 1;
+  }
+
+  .waitlist-left h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 6vw, 96px);
+    line-height: 0.9;
+    color: var(--white);
+    margin-bottom: 24px;
+  }
+
+  .waitlist-left h2 em {
+    display: block;
+    font-style: normal;
+    color: var(--orange);
+  }
+
+  .waitlist-left p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(245,242,235,0.6);
+    max-width: 380px;
+  }
+
+  .waitlist-perks {
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .perk {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: rgba(245,242,235,0.7);
+    letter-spacing: 0.5px;
+  }
+
+  .perk::before {
+    content: '▸';
+    color: var(--orange);
+    font-size: 12px;
+  }
+
+  .waitlist-form {
+    position: relative;
+    z-index: 1;
+  }
+
+  .form-card {
+    background: rgba(10,10,10,0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,77,0,0.2);
+    padding: 48px;
+  }
+
+  .form-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .form-sub {
+    font-size: 13px;
+    color: var(--mid);
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+  }
+
+  .counter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,77,0,0.12);
+    border: 1px solid rgba(255,77,0,0.3);
+    padding: 8px 14px;
+    margin-bottom: 28px;
+  }
+
+  .counter-dot {
+    width: 7px; height: 7px;
+    background: var(--orange);
+    border-radius: 50%;
+    animation: pulse 1.5s ease infinite;
+  }
+
+  .counter-text {
+    font-size: 12px;
+    color: var(--orange);
+    letter-spacing: 1px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 8px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(245,242,235,0.1);
+    color: var(--white);
+    padding: 14px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: none;
+    appearance: none;
+  }
+
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a5a' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+  }
+
+  .field select option { background: var(--black); color: var(--white); }
+
+  .field input:focus, .field select:focus {
+    border-color: var(--orange);
+    background: rgba(255,77,0,0.05);
+  }
+
+  .field input::placeholder { color: rgba(245,242,235,0.2); }
+
+  .submit-btn {
+    width: 100%;
+    margin-top: 24px;
+    background: var(--orange);
+    border: none;
+    color: var(--white);
+    padding: 18px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    cursor: none;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+
+  .submit-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .submit-btn:hover { background: var(--orange-dim); }
+  .submit-btn:hover::before { transform: translateX(0); }
+
+  .success-msg {
+    display: none;
+    text-align: center;
+    padding: 32px 0;
+  }
+
+  .success-msg.show { display: block; }
+
+  .success-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .success-msg h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--orange);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+
+  .success-msg p {
+    font-size: 14px;
+    color: rgba(245,242,235,0.6);
+  }
+
+  .form-inner { transition: opacity 0.3s, transform 0.3s; }
+  .form-inner.hidden { opacity: 0; pointer-events: none; transform: translateY(-10px); }
+
+  /* Footer */
+  footer {
+    padding: 48px;
+    border-top: 1px solid var(--grey);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  footer .logo { font-size: 20px; }
+
+  .footer-right {
+    font-size: 12px;
+    color: var(--mid);
+    letter-spacing: 1px;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.1); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    nav { padding: 20px 24px; }
+    .hero { padding: 0 24px 60px; }
+    .hero h1 { font-size: clamp(56px, 14vw, 100px); }
+    .stats { gap: 28px; }
+    .services { padding: 80px 24px; }
+    .services-grid { grid-template-columns: 1fr; }
+    .service-item { border-left: none; border-top: 1px solid var(--grey); }
+    .process { grid-template-columns: 1fr; padding: 80px 24px; gap: 40px; }
+    .waitlist { grid-template-columns: 1fr; padding: 80px 24px; }
+    .form-card { padding: 32px 24px; }
+    footer { flex-direction: column; gap: 16px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">Cut<span>Frame</span></div>
+  <button class="nav-cta" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">
+    Join Waitlist
+  </button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="filmstrip"></div>
+  <div class="filmstrip" style="right:104px;"></div>
+
+  <p class="hero-eyebrow">Professional Video Editing Studio</p>
+  <h1>YOUR STORY<em>CUT SHARP.</em></h1>
+  <p class="hero-sub">CutFrame is a premium video editing service built for creators, brands, and studios who refuse to settle for average. Fast turnarounds. Cinematic results.</p>
+
+  <div class="hero-bottom">
+    <div class="stats">
+      <div>
+        <div class="stat-num">48<span>HR</span></div>
+        <div class="stat-label">Avg. Turnaround</div>
+      </div>
+      <div>
+        <div class="stat-num">4K</div>
+        <div class="stat-label">Max Resolution</div>
+      </div>
+      <div>
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Revisions</div>
+      </div>
+    </div>
+    <div class="scroll-hint">
+      <div class="scroll-line"></div>
+      <span>Scroll</span>
+    </div>
+  </div>
+</section>
+
+<!-- Marquee Reel -->
+<div class="reel">
+  <div class="reel-track" id="reel">
+    <span class="reel-item">Color Grading</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Motion Graphics</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Sound Design</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Short-Form Reels</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Documentary Cuts</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Brand Films</span>
+    <span class="reel-item accent">✦</span>
+    <!-- Duplicate for seamless loop -->
+    <span class="reel-item">Color Grading</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Motion Graphics</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Sound Design</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Short-Form Reels</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Documentary Cuts</span>
+    <span class="reel-item accent">✦</span>
+    <span class="reel-item">Brand Films</span>
+    <span class="reel-item accent">✦</span>
+  </div>
+</div>
+
+<!-- Services -->
+<section class="services">
+  <p class="section-label">What We Do</p>
+  <div class="services-grid">
+    <div class="service-item">
+      <div class="service-num">01</div>
+      <div class="service-title">Social & Reels</div>
+      <p class="service-desc">Hook-first edits optimised for Instagram, TikTok, and YouTube Shorts. Snappy pacing, dynamic transitions, subtitle overlays.</p>
+    </div>
+    <div class="service-item">
+      <div class="service-num">02</div>
+      <div class="service-title">Brand & Commercial</div>
+      <p class="service-desc">Polished brand films, product videos, and ad creatives that convert. We handle everything from rough cut to final delivery.</p>
+    </div>
+    <div class="service-item">
+      <div class="service-num">03</div>
+      <div class="service-title">Long-Form & Docs</div>
+      <p class="service-desc">Podcasts, interviews, mini-docs, and YouTube longforms. Narrative-driven editing with colour grading and sound design.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Process -->
+<section class="process">
+  <div class="process-left">
+    <h2>HOW IT<em>WORKS</em></h2>
+  </div>
+  <div class="process-steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div>
+        <div class="step-title">Upload Your Footage</div>
+        <p class="step-body">Drop your raw files into our secure portal. Add a brief — or just talk to us. We figure the rest out.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div>
+        <div class="step-title">We Edit & Craft</div>
+        <p class="step-body">A dedicated editor picks up your project within hours. You'll get a draft cut in 48 hours or less.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div>
+        <div class="step-title">Review & Revise</div>
+        <p class="step-body">Leave timestamped comments directly on the video. Unlimited revisions until it's exactly right.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div>
+        <div class="step-title">Export & Publish</div>
+        <p class="step-body">Receive export-ready files in any format — 4K, web-optimised, platform-specific ratios. Done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Waitlist -->
+<section class="waitlist" id="waitlist">
+  <div class="waitlist-left">
+    <h2>GET IN<em>EARLY.</em></h2>
+    <p>We're launching soon and keeping the first cohort deliberately small. Join the waitlist for founding member pricing and early access.</p>
+    <div class="waitlist-perks">
+      <div class="perk">40% off for founding members — locked in forever</div>
+      <div class="perk">Priority queue on all projects</div>
+      <div class="perk">Direct access to your dedicated editor</div>
+      <div class="perk">Free first project review session</div>
+    </div>
+  </div>
+
+  <div class="waitlist-form">
+    <div class="form-card">
+      <div class="counter-badge">
+        <div class="counter-dot"></div>
+        <span class="counter-text" id="counter-text">247 people ahead of you</span>
+      </div>
+
+      <div class="form-inner" id="formInner">
+        <div class="form-title">Reserve Your Spot</div>
+        <p class="form-sub">Takes 30 seconds. No credit card.</p>
+
+        <div class="field">
+          <label>Your Name</label>
+          <input type="text" id="fname" placeholder="Alex Rivera" />
+        </div>
+        <div class="field">
+          <label>Email Address</label>
+          <input type="email" id="femail" placeholder="you@studio.com" />
+        </div>
+        <div class="field">
+          <label>What kind of content?</label>
+          <select id="ftype">
+            <option value="" disabled selected>Select your use case</option>
+            <option>Social Media / Reels</option>
+            <option>Brand & Commercial</option>
+            <option>YouTube / Long-Form</option>
+            <option>Documentary / Film</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <button class="submit-btn" onclick="handleSubmit()">JOIN THE WAITLIST →</button>
+      </div>
+
+      <div class="success-msg" id="successMsg">
+        <div class="success-icon">🎬</div>
+        <h3>You're On The List</h3>
+        <p>We'll reach out with early access details soon.<br>Expect something good in your inbox.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="logo">Cut<span>Frame</span></div>
+  <div class="footer-right">© 2026 CutFrame · All rights reserved</div>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+  document.querySelectorAll('button, a, input, select, .service-item').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('big'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('big'));
+  });
+
+  // Live counter animation
+  let count = 247;
+  setInterval(() => {
+    if (Math.random() > 0.7) {
+      count += Math.floor(Math.random() * 3) + 1;
+      document.getElementById('counter-text').textContent = count + ' people ahead of you';
+    }
+  }, 4000);
+
+  // Form submit
+  function handleSubmit() {
+    const name = document.getElementById('fname').value.trim();
+    const email = document.getElementById('femail').value.trim();
+    const type = document.getElementById('ftype').value;
+
+    if (!name || !email || !type) {
+      alert('Please fill in all fields.');
+      return;
+    }
+    if (!email.includes('@')) {
+      alert('Please enter a valid email.');
+      return;
+    }
+
+    document.getElementById('formInner').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('successMsg').classList.add('show');
+    }, 300);
+
+    count++;
+    document.getElementById('counter-text').textContent = count + ' people ahead of you';
+  }
+
+  // Intersection observer for service items
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '0';
+        entry.target.style.transform = 'translateY(20px)';
+        entry.target.style.transition = `opacity 0.6s ease ${i * 0.1}s, transform 0.6s ease ${i * 0.1}s`;
+        setTimeout(() => {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }, 50);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.service-item, .step').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
